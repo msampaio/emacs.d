@@ -1,51 +1,16 @@
-(when (< emacs-major-version 24)
-  (require-package 'color-theme))
+;;; init-themes.el --- Defaults for themes -*- lexical-binding: t -*-
+;;; Commentary:
+;;; Code:
 
 (require-package 'color-theme-sanityinc-solarized)
 (require-package 'color-theme-sanityinc-tomorrow)
 
-;;------------------------------------------------------------------------------
-;; Old-style color theming support (via color-theme.el)
-;;------------------------------------------------------------------------------
-(defcustom window-system-color-theme 'color-theme-sanityinc-solarized-dark
-  "Color theme to use in window-system frames.
-If Emacs' native theme support is available, this setting is
-ignored: use `custom-enabled-themes' instead."
-  :type 'symbol)
-
-(defcustom tty-color-theme 'color-theme-terminal
-  "Color theme to use in TTY frames.
-If Emacs' native theme support is available, this setting is
-ignored: use `custom-enabled-themes' instead."
-  :type 'symbol)
-
-(unless (boundp 'custom-enabled-themes)
-  (defun color-theme-terminal ()
-    (interactive)
-    (color-theme-sanityinc-solarized-dark))
-
-  (defun apply-best-color-theme-for-frame-type (frame)
-    (with-selected-frame frame
-      (funcall (if window-system
-                   window-system-color-theme
-                 tty-color-theme))))
-
-  (defun reapply-color-themes ()
-    (interactive)
-    (mapcar 'apply-best-color-theme-for-frame-type (frame-list)))
-
-  (set-variable 'color-theme-is-global nil)
-  (add-hook 'after-make-frame-functions 'apply-best-color-theme-for-frame-type)
-  (add-hook 'after-init-hook 'reapply-color-themes)
-  (apply-best-color-theme-for-frame-type (selected-frame)))
-
-
-;;------------------------------------------------------------------------------
-;; New-style theme support, in which per-frame theming is not possible
-;;------------------------------------------------------------------------------
+;; Don't prompt to confirm theme safety. This avoids problems with
+;; first-time startup on Emacs > 26.3.
+(setq custom-safe-themes t)
 
 ;; If you don't customize it, this is the theme you get.
-(setq-default custom-enabled-themes '(sanityinc-solarized-light))
+(setq-default custom-enabled-themes '(sanityinc-tomorrow-bright))
 
 ;; Ensure that themes will be applied even if they have not been customized
 (defun reapply-themes ()
@@ -58,18 +23,36 @@ ignored: use `custom-enabled-themes' instead."
 (add-hook 'after-init-hook 'reapply-themes)
 
 
-;;------------------------------------------------------------------------------
+
 ;; Toggle between light and dark
-;;------------------------------------------------------------------------------
+
 (defun light ()
   "Activate a light color theme."
   (interactive)
-  (color-theme-sanityinc-solarized-light))
+  (setq custom-enabled-themes '(sanityinc-tomorrow-day))
+  (reapply-themes))
 
 (defun dark ()
   "Activate a dark color theme."
   (interactive)
-  (color-theme-sanityinc-solarized-dark))
+  (setq custom-enabled-themes '(sanityinc-tomorrow-bright))
+  (reapply-themes))
+
+
+(when (maybe-require-package 'dimmer)
+  (setq-default dimmer-fraction 0.15)
+  (add-hook 'after-init-hook 'dimmer-mode)
+  (with-eval-after-load 'dimmer
+    ;; TODO: file upstream as a PR
+    (advice-add 'frame-set-background-mode :after (lambda (&rest args) (dimmer-process-all))))
+  (with-eval-after-load 'dimmer
+    ;; Don't dim in terminal windows. Even with 256 colours it can
+    ;; lead to poor contrast.  Better would be to vary dimmer-fraction
+    ;; according to frame type.
+    (defun sanityinc/display-non-graphic-p ()
+      (not (display-graphic-p)))
+    (add-to-list 'dimmer-exclusion-predicates 'sanityinc/display-non-graphic-p)))
 
 
 (provide 'init-themes)
+;;; init-themes.el ends here

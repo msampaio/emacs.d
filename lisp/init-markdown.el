@@ -1,6 +1,12 @@
-(require-package 'markdown-mode)
+;;; init-markdown.el --- Markdown support -*- lexical-binding: t -*-
+;;; Commentary:
+;;; Code:
 
-(setq auto-mode-alist
-      (cons '("\\.\\(md\\|markdown\\)\\'" . markdown-mode) auto-mode-alist))
+(when (maybe-require-package 'markdown-mode)
+  (add-auto-mode 'markdown-mode "\\.md\\.html\\'")
+  (with-eval-after-load 'whitespace-cleanup-mode
+    (add-to-list 'whitespace-cleanup-mode-ignore-modes 'markdown-mode)))
+
 
 (provide 'init-markdown)
+;;; init-markdown.el ends here

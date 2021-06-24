@@ -1,42 +1,36 @@
-(require-package 'slime)
-;; package.el compiles the contrib subdir, but the compilation order
-;; causes problems, so we remove the .elc files there. See
-;; http://lists.common-lisp.net/pipermail/slime-devel/2012-February/018470.html
-(mapc #'delete-file
-      (file-expand-wildcards (concat user-emacs-directory "elpa/slime-2*/contrib/*.elc")))
+;;; init-slime.el --- Slime support for Common Lisp -*- lexical-binding: t -*-
+;;; Commentary:
+;;; Code:
 
-(require-package 'ac-slime)
-(require-package 'hippie-expand-slime)
+(require-package 'slime)
+
+(when (maybe-require-package 'slime-company)
+  (setq slime-company-completion 'fuzzy
+        slime-company-after-completion 'slime-company-just-one-space)
+  (with-eval-after-load 'slime-company
+    (add-to-list 'company-backends 'company-slime)))
 
 
 ;;; Lisp buffers
 
-(defun sanityinc/slime-setup ()
-  "Mode setup function for slime lisp buffers."
-  (set-up-slime-hippie-expand)
-  (set-up-slime-ac t))
-
-(after-load 'slime
+(with-eval-after-load 'slime
   (setq slime-protocol-version 'ignore)
   (setq slime-net-coding-system 'utf-8-unix)
-  (slime-setup '(slime-repl slime-fuzzy))
-  (setq slime-complete-symbol*-fancy t)
-  (setq slime-complete-symbol-function 'slime-fuzzy-complete-symbol)
-  (add-hook 'slime-mode-hook 'sanityinc/slime-setup))
+  (let ((features '(slime-fancy slime-repl slime-fuzzy)))
+    (when (require 'slime-company nil t)
+      (push 'slime-company features))
+    (slime-setup features)) )
 
 
 ;;; REPL
 
 (defun sanityinc/slime-repl-setup ()
   "Mode setup function for slime REPL."
-  (sanityinc/lisp-setup)
-  (set-up-slime-hippie-expand)
-  (set-up-slime-ac t)
-  (setq show-trailing-whitespace nil))
+  (sanityinc/lisp-setup))
 
-(after-load 'slime-repl
+(with-eval-after-load 'slime-repl
   ;; Stop SLIME's REPL from grabbing DEL, which is annoying when backspacing over a '('
-  (after-load 'paredit
+  (with-eval-after-load 'paredit
     (define-key slime-repl-mode-map (read-kbd-macro paredit-backward-delete-key) nil))
 
   ;; Bind TAB to `indent-for-tab-command', as in regular Slime buffers.
@@ -44,8 +38,6 @@
 
   (add-hook 'slime-repl-mode-hook 'sanityinc/slime-repl-setup))
 
-(after-load 'auto-complete
-  (add-to-list 'ac-modes 'slime-repl-mode))
-
 
 (provide 'init-slime)
+;;; init-slime.el ends here
